@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const mongo = require("mongodb");
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -22,32 +23,52 @@ const client = new MongoClient(dbUrl, {
 async function run() {
   try {
     await client.connect();
+
+    // creating database and collections
     const database = client.db("sagarTravel");
     const Tours = database.collection("Tours");
-    const Users = database.collection("Users");
-
-    const doc = {
-      name: "tour 1",
-      price: 200,
-    };
+    const Orders = database.collection("Orders");
 
     // post API endpoint for creating a tour
-    app.post("/api/tours", async (req, res) => {
+    app.post("/api/tours/:adminId", async (req, res) => {
       try {
-        const { name, country, duration, maxGroupSize, price, description } =
-          req.body;
-        const tour = await Tours.insertMany();
-        res.status(201).json({
-          status: "success",
-          data: {
-            tour,
-          },
-        });
+        const { adminId } = req.params;
+        if (adminId === "NHmrL00oXvOa1vycTdF247Zo2th2") {
+          const {
+            name,
+            country,
+            duration,
+            maxGroupSize,
+            price,
+            description,
+            images,
+          } = req.body;
+          const tour = await Tours.insertOne({
+            name,
+            country,
+            duration,
+            maxGroupSize,
+            price,
+            description,
+            images,
+          });
+          res.status(201).json({
+            status: "success",
+            data: {
+              tour,
+            },
+          });
+        } else {
+          res.status(200).json({
+            status: "fail",
+            message: "unauthorized",
+          });
+        }
       } catch (error) {
         console.log(err);
         res.status(500).json({
           status: "fail",
-          error: err.message,
+          message: err.message,
         });
       }
     });
@@ -56,7 +77,6 @@ async function run() {
 
     app.get("/api/tours", async (req, res) => {
       try {
-        console.log(res);
         const tours = await Tours.find({}).toArray();
         res.status(200).json({
           status: "success",
@@ -68,10 +88,183 @@ async function run() {
         console.log(err);
         res.status(500).json({
           status: "fail",
-          error: err.message,
+          message: err.message,
         });
       }
     });
+
+    // update API endpoint for all tours
+    app.patch("/api/tours", async (req, res) => {
+      try {
+        const date = "Dec 10/21";
+        const result = await Tours.updateMany(
+          {},
+          {
+            $set: { date },
+          }
+        );
+        res.status(200).json({
+          status: "success",
+        });
+      } catch (error) {
+        console.log(error);
+      }
+    });
+
+    // get API endpoint for a user data
+    app.get("/api/order/:userUID", async (req, res) => {
+      try {
+        const { userUID } = req.params;
+        const bookedTour = await Orders.find({ userUid: userUID }).toArray();
+        console.log(bookedTour);
+        res.status(200).json({
+          status: "success",
+          bookedTour,
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
+      }
+    });
+
+    // post API endpoint for creting an user after booking a tour
+
+    app.post("/api/order", async (req, res) => {
+      try {
+        const {
+          phoneNumber,
+          address,
+          userName,
+          userEmail,
+          userUid,
+          tourID,
+          date,
+        } = req.body;
+        const userData = {
+          phone: phoneNumber,
+          address,
+          name: userName,
+          email: userEmail,
+          userUid,
+          tourID,
+          statusPending: true,
+          date,
+        };
+        const result = await Orders.insertOne({ ...userData });
+        console.log(result);
+        res.status(201).json({
+          status: "success",
+          message:
+            "Booking successful, we will notify you for your next actions.",
+        });
+      } catch (err) {
+        console.log(err);
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
+      }
+    });
+
+    // delete API for admin
+    app.delete("/api/order/:orderID/:adminId", async (req, res) => {
+      try {
+        const { orderID, adminId } = req.params;
+        if (adminId === "NHmrL00oXvOa1vycTdF247Zo2th2") {
+          const id = new mongo.ObjectId(orderID);
+          const result = await Orders.deleteOne({
+            _id: id,
+          });
+
+          res.status(204).json({
+            status: "success",
+          });
+        } else {
+          res.status(200).json({
+            status: "fail",
+            message: "unauthorized",
+          });
+        }
+      } catch (err) {
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
+      }
+    });
+
+    // update API for admin
+    app.patch("/api/order/:orderID/:adminId", async (req, res) => {
+      try {
+        const { orderID, adminId } = req.params;
+        if (adminId === "NHmrL00oXvOa1vycTdF247Zo2th2") {
+          const id = new mongo.ObjectId(orderID);
+          console.log(orderID, id);
+          const result = await Orders.updateOne(
+            {
+              _id: id,
+            },
+            {
+              $set: { statusPending: false },
+            }
+          );
+          console.log(result);
+          res.status(200).json({
+            status: "success",
+          });
+        } else {
+          res.status(200).json({
+            status: "fail",
+            message: "unathorized",
+          });
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    });
+
+    // get all orders API endpoint
+
+    app.get("/api/order", async (req, res) => {
+      try {
+        const allOrders = await Orders.find({}).toArray();
+        res.status(200).json({
+          status: "success",
+          allOrders,
+        });
+      } catch (err) {
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
+      }
+    });
+
+    // delete API endpoint for user
+
+    app.delete("/api/order/:orderID", async (req, res) => {
+      try {
+        const { orderID } = req.params;
+        const id = new mongo.ObjectId(orderID);
+        const result = await Orders.deleteOne({
+          _id: id,
+        });
+
+        res.status(204).json({
+          status: "success",
+        });
+      } catch (err) {
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
+      }
+    });
+
+    // g
   } finally {
     // await client.close()
   }
