@@ -65,7 +65,6 @@ async function run() {
           });
         }
       } catch (error) {
-        console.log(err);
         res.status(500).json({
           status: "fail",
           message: err.message,
@@ -85,7 +84,6 @@ async function run() {
           },
         });
       } catch (err) {
-        console.log(err);
         res.status(500).json({
           status: "fail",
           message: err.message,
@@ -107,7 +105,10 @@ async function run() {
           status: "success",
         });
       } catch (error) {
-        console.log(error);
+        res.status(200).json({
+          status: "success",
+          bookedTour,
+        });
       }
     });
 
@@ -116,13 +117,11 @@ async function run() {
       try {
         const { userUID } = req.params;
         const bookedTour = await Orders.find({ userUid: userUID }).toArray();
-        console.log(bookedTour);
         res.status(200).json({
           status: "success",
           bookedTour,
         });
       } catch (err) {
-        console.log(err);
         res.status(500).json({
           status: "fail",
           message: err.message,
@@ -154,14 +153,12 @@ async function run() {
           date,
         };
         const result = await Orders.insertOne({ ...userData });
-        console.log(result);
         res.status(201).json({
           status: "success",
           message:
             "Booking successful, we will notify you for your next actions.",
         });
       } catch (err) {
-        console.log(err);
         res.status(500).json({
           status: "fail",
           message: err.message,
@@ -202,7 +199,6 @@ async function run() {
         const { orderID, adminId } = req.params;
         if (adminId === "NHmrL00oXvOa1vycTdF247Zo2th2") {
           const id = new mongo.ObjectId(orderID);
-          console.log(orderID, id);
           const result = await Orders.updateOne(
             {
               _id: id,
@@ -211,7 +207,6 @@ async function run() {
               $set: { statusPending: false },
             }
           );
-          console.log(result);
           res.status(200).json({
             status: "success",
           });
@@ -222,7 +217,10 @@ async function run() {
           });
         }
       } catch (err) {
-        console.log(err);
+        res.status(500).json({
+          status: "fail",
+          message: err.message,
+        });
       }
     });
 
