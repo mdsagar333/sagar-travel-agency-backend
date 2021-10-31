@@ -4,6 +4,7 @@ const app = express();
 const mongo = require("mongodb");
 const { MongoClient } = require("mongodb");
 require("dotenv").config();
+
 const port = process.env.PORT || 5000;
 
 const tourData = require("./data/tours");
